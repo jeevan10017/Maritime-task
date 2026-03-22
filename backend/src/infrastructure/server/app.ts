@@ -4,6 +4,7 @@ import { healthRouter }     from '../../adapters/inbound/http/healthRouter';
 import { routeRouter }      from '../../adapters/inbound/http/routeRouter';
 import { complianceRouter } from '../../adapters/inbound/http/complianceRouter';
 import { bankingRouter }    from '../../adapters/inbound/http/bankingRouter';
+import { poolRouter }       from '../../adapters/inbound/http/poolRouter';
 
 export function createApp(): Application {
   const app = express();
@@ -18,6 +19,7 @@ export function createApp(): Application {
   app.use(`${prefix}/routes`,     routeRouter);
   app.use(`${prefix}/compliance`, complianceRouter);
   app.use(`${prefix}/banking`,    bankingRouter);
+  app.use(`${prefix}/pools`,      poolRouter);   
 
   app.use((_req: Request, res: Response) => {
     res.status(404).json({ status: 'error', message: 'Route not found' });
