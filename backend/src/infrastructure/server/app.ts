@@ -3,6 +3,7 @@ import cors from 'cors';
 import { healthRouter }     from '../../adapters/inbound/http/healthRouter';
 import { routeRouter }      from '../../adapters/inbound/http/routeRouter';
 import { complianceRouter } from '../../adapters/inbound/http/complianceRouter';
+import { bankingRouter }    from '../../adapters/inbound/http/bankingRouter';
 
 export function createApp(): Application {
   const app = express();
@@ -16,6 +17,7 @@ export function createApp(): Application {
   app.use(`${prefix}/health`,     healthRouter);
   app.use(`${prefix}/routes`,     routeRouter);
   app.use(`${prefix}/compliance`, complianceRouter);
+  app.use(`${prefix}/banking`,    bankingRouter);
 
   app.use((_req: Request, res: Response) => {
     res.status(404).json({ status: 'error', message: 'Route not found' });
@@ -24,11 +26,10 @@ export function createApp(): Application {
   app.use((err: Error, _req: Request, res: Response, _next: NextFunction) => {
     console.error('[Error]', err.message);
     res.status(500).json({
-      status: 'error',
-      message:
-        process.env.NODE_ENV === 'production'
-          ? 'Internal server error'
-          : err.message,
+      status:  'error',
+      message: process.env.NODE_ENV === 'production'
+        ? 'Internal server error'
+        : err.message,
     });
   });
 
