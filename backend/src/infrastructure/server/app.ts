@@ -1,7 +1,8 @@
 import express, { Application, Request, Response, NextFunction } from 'express';
 import cors from 'cors';
-import { healthRouter } from '../../adapters/inbound/http/healthRouter';
-import { routeRouter }  from '../../adapters/inbound/http/routeRouter';
+import { healthRouter }     from '../../adapters/inbound/http/healthRouter';
+import { routeRouter }      from '../../adapters/inbound/http/routeRouter';
+import { complianceRouter } from '../../adapters/inbound/http/complianceRouter';
 
 export function createApp(): Application {
   const app = express();
@@ -12,15 +13,14 @@ export function createApp(): Application {
 
   const prefix = process.env.API_PREFIX ?? '/api/v1';
 
-  app.use(`${prefix}/health`, healthRouter);
-  app.use(`${prefix}/routes`, routeRouter);  
+  app.use(`${prefix}/health`,     healthRouter);
+  app.use(`${prefix}/routes`,     routeRouter);
+  app.use(`${prefix}/compliance`, complianceRouter);
 
-  
   app.use((_req: Request, res: Response) => {
     res.status(404).json({ status: 'error', message: 'Route not found' });
   });
 
-  // ── Global error handler ────────────────────────────────────
   app.use((err: Error, _req: Request, res: Response, _next: NextFunction) => {
     console.error('[Error]', err.message);
     res.status(500).json({

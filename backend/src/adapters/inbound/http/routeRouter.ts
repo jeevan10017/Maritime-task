@@ -3,17 +3,19 @@ import pool from '../../../infrastructure/db/client';
 import { PostgresRouteRepository } from '../../outbound/postgres/PostgresRouteRepository';
 import { GetRoutes }    from '../../../core/application/usecases/GetRoutes';
 import { SetBaseline, DomainError } from '../../../core/application/usecases/SetBaseline';
+import { GetComparison } from '../../../core/application/usecases/GetComparison';
 import { RouteFilters, VesselType, FuelType } from '../../../core/domain/route';
 
 export const routeRouter = Router();
 
-// ── Dependency wiring (manual DI, no container needed yet) ──
+
 const routeRepo    = new PostgresRouteRepository(pool);
 const getRoutes    = new GetRoutes(routeRepo);
 const setBaseline  = new SetBaseline(routeRepo);
+const getComparison = new GetComparison(routeRepo);
 
 // ────────────────────────────────────────────────────────────
-// GET /routes?vesselType=&fuelType=&year=
+// GET /routes
 // ────────────────────────────────────────────────────────────
 routeRouter.get(
   '/',
@@ -40,13 +42,36 @@ routeRouter.get(
       }
 
       const routes = await getRoutes.execute(filters);
+      res.status(200).json({ status: 'ok', count: routes.length, data: routes });
+    } catch (err) {
+      next(err);
+    }
+  }
+);
+
+// ────────────────────────────────────────────────────────────
+// GET /routes/comparison 
+// ────────────────────────────────────────────────────────────
+routeRouter.get(
+  '/comparison',
+  async (_req: Request, res: Response, next: NextFunction) => {
+    try {
+      const comparisons = await getComparison.execute();
 
       res.status(200).json({
         status: 'ok',
-        count: routes.length,
-        data: routes,
+        target: 89.3368,
+        count:  comparisons.length,
+        data:   comparisons,
       });
     } catch (err) {
+      if (err instanceof DomainError) {
+        res.status(err.statusCode).json({
+          status: 'error',
+          message: err.message,
+        });
+        return;
+      }
       next(err);
     }
   }
@@ -70,14 +95,12 @@ routeRouter.post(
       }
 
       const updated = await setBaseline.execute(id);
-
       res.status(200).json({
         status: 'ok',
         message: `Route ${updated.routeId} is now the baseline`,
         data: updated,
       });
     } catch (err) {
-      // Let DomainError bubble with its own status code
       if (err instanceof DomainError) {
         res.status(err.statusCode).json({
           status: 'error',
