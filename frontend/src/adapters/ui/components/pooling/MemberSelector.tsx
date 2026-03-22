@@ -1,53 +1,105 @@
-import { Route } from '../../../../core/domain/route';
-import { Badge } from '../shared/Badge';
-import { Spinner } from '../shared/Spinner';
+import { AdjustedCB } from '../../../../core/domain/compliance';
+import { Badge }      from '../shared/Badge';
 
 interface MemberSelectorProps {
-  routes: Route[];
-  selected: Map<number, Route>;
-  onToggle: (route: Route) => void;
-  loading: boolean;
+  allShipIds:   string[];
+  selected:     string[];
+  adjustedCBs:  Record<string, AdjustedCB>;
+  year:         number;
+  onToggle:     (shipId: string) => void;
+  onFetchCB:    (shipId: string) => void;
 }
 
-export function MemberSelector({ routes, selected, onToggle, loading }: MemberSelectorProps) {
-  if (loading) {
-    return <div className="card text-center py-8"><Spinner /></div>;
-  }
+const fmt = (n: number) =>
+  n.toLocaleString('en-US', { maximumFractionDigits: 0 });
+
+export function MemberSelector({
+  allShipIds, selected, adjustedCBs, year, onToggle, onFetchCB,
+}: MemberSelectorProps) {
+  const poolSum = selected.reduce((s, id) => {
+    const cb = adjustedCBs[id];
+    return cb ? s + cb.adjustedCB : s;
+  }, 0);
+
+  const sumValid = poolSum >= 0;
 
   return (
-    <div className="card">
-      <h3 className="mb-4 text-sm font-semibold text-slate-300">Select Pool Members (min 2)</h3>
-      <div className="space-y-2 max-h-96 overflow-y-auto">
-        {routes.length === 0 ? (
-          <p className="text-slate-500 text-sm">No routes available</p>
-        ) : (
-          routes.map((route) => (
-            <label key={route.id} className="flex items-center gap-3 p-3 rounded hover:bg-slate-800/50 cursor-pointer">
-              <input
-                type="checkbox"
-                checked={selected.has(route.id)}
-                onChange={() => onToggle(route)}
-                className="w-4 h-4 rounded"
-              />
-              <div className="flex-1 min-w-0">
-                <p className="font-mono font-semibold text-slate-100 text-sm">
-                  {route.routeId}
-                </p>
-                <p className="text-xs text-slate-500">
-                  {route.origin} → {route.destination}
-                </p>
-              </div>
-              <Badge
-                label={route.isBaseline ? 'Baseline' : 'Comparison'}
-                variant={route.isBaseline ? 'blue' : 'slate'}
-              />
-            </label>
-          ))
+    <div className="card space-y-4">
+      <div className="flex items-center justify-between">
+        <h3 className="text-sm font-semibold text-slate-400 uppercase
+                       tracking-wide">
+          Pool Members
+        </h3>
+        {selected.length >= 2 && (
+          <div className={`flex items-center gap-2 rounded-lg px-3 py-1.5
+                          text-xs font-semibold border ${
+            sumValid
+              ? 'border-emerald-500/30 bg-emerald-500/10 text-emerald-400'
+              : 'border-red-500/30 bg-red-500/10 text-red-400'
+          }`}>
+            Pool Sum: {fmt(poolSum)} gCO₂e
+            <span>{sumValid ? '✓' : '✗ Must be ≥ 0'}</span>
+          </div>
         )}
       </div>
-      <p className="mt-3 text-xs text-slate-500">
-        Selected: {selected.size} route(s)
-      </p>
+
+      <div className="grid grid-cols-1 gap-2 sm:grid-cols-2 lg:grid-cols-3">
+        {allShipIds.map((id) => {
+          const cb       = adjustedCBs[id];
+          const isActive = selected.includes(id);
+
+          return (
+            <div
+              key={id}
+              className={`rounded-lg border p-3 cursor-pointer transition-all
+                ${isActive
+                  ? 'border-brand-500 bg-brand-500/10'
+                  : 'border-slate-700 bg-slate-800/40 hover:border-slate-600'
+                }`}
+              onClick={() => onToggle(id)}
+            >
+              <div className="flex items-center justify-between mb-2">
+                <span className="font-mono font-semibold text-slate-100 text-sm">
+                  {id}
+                </span>
+                <input
+                  type="checkbox"
+                  readOnly
+                  checked={isActive}
+                  className="accent-brand-500 h-4 w-4"
+                />
+              </div>
+
+              {cb ? (
+                <div className="space-y-1">
+                  <div className="flex items-center justify-between">
+                    <span className="text-xs text-slate-500">Adjusted CB</span>
+                    <Badge
+                      label={cb.status}
+                      variant={cb.status === 'surplus' ? 'green' : 'red'}
+                    />
+                  </div>
+                  <p className={`text-xs font-mono font-semibold ${
+                    cb.status === 'surplus'
+                      ? 'text-emerald-400'
+                      : 'text-red-400'
+                  }`}>
+                    {fmt(cb.adjustedCB)} gCO₂e
+                  </p>
+                </div>
+              ) : (
+                <button
+                  onClick={(e) => { e.stopPropagation(); onFetchCB(id); }}
+                  className="text-xs text-brand-400 hover:text-brand-300
+                             transition-colors"
+                >
+                  Load CB for {year} →
+                </button>
+              )}
+            </div>
+          );
+        })}
+      </div>
     </div>
   );
 }

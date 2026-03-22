@@ -1,39 +1,107 @@
-import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts';
-import { RouteComparison } from '../../../../core/domain/compliance';
+import {
+  BarChart, Bar, XAxis, YAxis, CartesianGrid,
+  Tooltip, ReferenceLine, ResponsiveContainer, Cell,
+} from 'recharts';
+import { RouteComparison } from '../../../../core/domain/route';
 import { GHG_TARGET } from '../../../../shared/constants';
 
 interface CompareChartProps {
-  comparisons: RouteComparison[];
+  comparisons:       RouteComparison[];
+  baselineIntensity: number;
+  baselineRouteId:   string;
 }
 
-export function CompareChart({ comparisons }: CompareChartProps) {
-  const data = comparisons.map((comp) => ({
-    baseline: comp.baselineIntensity,
-    comparison: comp.comparisonIntensity,
-    target: GHG_TARGET,
-    compliant: comp.compliant,
-  }));
+export function CompareChart({
+  comparisons,
+  baselineIntensity,
+  baselineRouteId,
+}: CompareChartProps) {
+  const data = [
+    {
+      routeId:      baselineRouteId,
+      ghgIntensity: baselineIntensity,
+      isBaseline:   true,
+    },
+    ...comparisons.map((c) => ({
+      routeId:      c.comparisonRouteId,
+      ghgIntensity: c.comparisonIntensity,
+      isBaseline:   false,
+      compliant:    c.compliant,
+    })),
+  ];
 
   return (
-    <div className="card h-80">
-      <h3 className="mb-4 text-sm font-semibold text-slate-300">
-        GHG Intensity Comparison
-      </h3>
-      <ResponsiveContainer width="100%" height="100%">
-        <BarChart data={data}>
-          <CartesianGrid strokeDasharray="3 3" stroke="#334155" />
-          <XAxis dataKey="name" stroke="#94a3b8" />
-          <YAxis stroke="#94a3b8" label={{ value: 'gCO₂e/MJ', angle: -90, position: 'insideLeft' }} />
-          <Tooltip 
-            contentStyle={{ backgroundColor: '#1e293b', border: '1px solid #475569' }}
-            labelStyle={{ color: '#f1f5f9' }}
-          />
-          <Legend wrapperStyle={{ color: '#cbd5e1' }} />
-          <Bar dataKey="baseline" fill="#2563eb" name="Baseline" />
-          <Bar dataKey="comparison" fill="#8b5cf6" name="Comparison" />
-          <Bar dataKey="target" fill="#10b981" name="Target" />
-        </BarChart>
-      </ResponsiveContainer>
-    </div>
+    <ResponsiveContainer width="100%" height={300}>
+      <BarChart
+        data={data}
+        margin={{ top: 10, right: 20, left: 0, bottom: 0 }}
+        barCategoryGap="30%"
+      >
+        <CartesianGrid
+          strokeDasharray="3 3"
+          stroke="#1e293b"
+          vertical={false}
+        />
+        <XAxis
+          dataKey="routeId"
+          tick={{ fill: '#94a3b8', fontSize: 12 }}
+          axisLine={{ stroke: '#334155' }}
+          tickLine={false}
+        />
+        <YAxis
+          domain={[85, 96]}
+          tick={{ fill: '#94a3b8', fontSize: 11 }}
+          axisLine={false}
+          tickLine={false}
+          tickFormatter={(v) => `${v}`}
+          label={{
+            value: 'gCO₂e/MJ',
+            angle: -90,
+            position: 'insideLeft',
+            fill: '#64748b',
+            fontSize: 11,
+          }}
+        />
+        <Tooltip
+          contentStyle={{
+            background:   '#0f172a',
+            border:       '1px solid #1e293b',
+            borderRadius: '8px',
+            fontSize:     '12px',
+            color:        '#e2e8f0',
+          }}
+          formatter={(value: number) => [
+            `${value.toFixed(2)} gCO₂e/MJ`,
+            'GHG Intensity',
+          ]}
+        />
+        {/* Regulation target line */}
+        <ReferenceLine
+          y={GHG_TARGET}
+          stroke="#f59e0b"
+          strokeDasharray="5 4"
+          label={{
+            value:    `Target ${GHG_TARGET}`,
+            position: 'insideTopRight',
+            fill:     '#f59e0b',
+            fontSize: 11,
+          }}
+        />
+        <Bar dataKey="ghgIntensity" radius={[4, 4, 0, 0]}>
+          {data.map((entry, i) => (
+            <Cell
+              key={i}
+              fill={
+                entry.isBaseline
+                  ? '#3b82f6'
+                  : entry.compliant
+                  ? '#10b981'
+                  : '#ef4444'
+              }
+            />
+          ))}
+        </Bar>
+      </BarChart>
+    </ResponsiveContainer>
   );
 }

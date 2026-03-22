@@ -1,38 +1,18 @@
 import { http } from './httpClient';
 import { IComplianceService } from '../../../core/ports/IComplianceService';
-import { ComplianceBalance, RouteComparison, ComplianceFilters } from '../../../core/domain/compliance';
-
-interface ComplianceResponse {
-  status: string;
-  data:   ComplianceBalance;
-}
-
-interface ComparisonsResponse {
-  status: string;
-  target: number;
-  data:   RouteComparison[];
-}
+import { ComplianceBalance, AdjustedCB } from '../../../core/domain/compliance';
 
 export class ComplianceApiService implements IComplianceService {
-  async getBalance(shipId: string, year: number): Promise<ComplianceBalance | null> {
-    try {
-      const res = await http.get<ComplianceResponse>(
-        `/compliance/cb?shipId=${shipId}&year=${year}`
-      );
-      return res.data;
-    } catch {
-      return null;
-    }
+  async computeCB(shipId: string, year: number): Promise<ComplianceBalance> {
+    const res = await http.get<{ status: string; data: ComplianceBalance }>(
+      `/compliance/cb?shipId=${shipId}&year=${year}`
+    );
+    return res.data;
   }
 
-  async getComparisons(filters?: ComplianceFilters): Promise<RouteComparison[]> {
-    const params = new URLSearchParams();
-    if (filters?.year) params.set('year', String(filters.year));
-    if (filters?.shipId) params.set('shipId', filters.shipId);
-
-    const query = params.toString();
-    const res = await http.get<ComparisonsResponse>(
-      `/compliance/comparison${query ? `?${query}` : ''}`
+  async getAdjustedCB(shipId: string, year: number): Promise<AdjustedCB> {
+    const res = await http.get<{ status: string; data: AdjustedCB }>(
+      `/compliance/adjusted-cb?shipId=${shipId}&year=${year}`
     );
     return res.data;
   }

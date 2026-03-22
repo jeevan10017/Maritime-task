@@ -1,9 +1,13 @@
-// Outbound port for banking services
-
-import { BankingSummary, BankSurplusInput, ApplyBankedInput } from '../domain/banking';
+import {
+  BankingSummary,
+  ApplyBankedResult,
+  BankEntry,
+  PoolResult,
+} from '../domain/banking';
 
 export interface IBankingService {
-  getSummary(shipId: string, year: number): Promise<BankingSummary | null>;
-  bankSurplus(input: BankSurplusInput): Promise<BankingSummary>;
-  applyBanked(input: ApplyBankedInput): Promise<number>;
+  getRecords(shipId: string, year: number): Promise<BankingSummary>;
+  bankSurplus(shipId: string, year: number, amount: number): Promise<BankEntry>;
+  applyBanked(shipId: string, year: number, amount: number): Promise<ApplyBankedResult>;
+  createPool(year: number, shipIds: string[]): Promise<PoolResult>;
 }

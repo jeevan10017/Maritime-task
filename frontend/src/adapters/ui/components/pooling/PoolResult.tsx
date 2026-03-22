@@ -1,81 +1,66 @@
-import { Badge } from '../shared/Badge';
+import { PoolResult as PR } from '../../../../core/domain/banking';
 
-interface PoolMember {
-  shipId: string;
-  cbBefore: number;
-  cbAfter: number;
-  delta: number;
-}
+const fmt = (n: number) =>
+  n.toLocaleString('en-US', { maximumFractionDigits: 0 });
 
-interface PoolResultProps {
-  poolId: number;
-  year: number;
-  poolSum: number;
-  members: PoolMember[];
-  createdAt: string;
-}
-
-export function PoolResult({ poolId, year, poolSum, members, createdAt }: PoolResultProps) {
+export function PoolResult({ result }: { result: PR }) {
   return (
     <div className="card space-y-4">
-      <h3 className="text-sm font-semibold text-slate-300">Pool Created Successfully</h3>
-
-      <div className="grid grid-cols-3 gap-3 p-3 bg-slate-800/50 rounded">
-        <div>
-          <p className="text-xs text-slate-500">Pool ID</p>
-          <p className="font-mono text-sm font-semibold text-slate-100">{poolId}</p>
-        </div>
-        <div>
-          <p className="text-xs text-slate-500">Year</p>
-          <p className="font-mono text-sm font-semibold text-slate-100">{year}</p>
-        </div>
-        <div>
-          <p className="text-xs text-slate-500">Pool Sum</p>
-          <p className="font-mono text-sm font-semibold text-slate-100">
-            {poolSum.toFixed(2)} gCO₂e
-          </p>
-        </div>
+      <div className="flex items-center justify-between">
+        <h3 className="text-sm font-semibold text-slate-400 uppercase
+                       tracking-wide">
+          Pool #{result.poolId} — Created
+        </h3>
+        <span className="text-xs text-slate-500">
+          {new Date(result.createdAt).toLocaleString()}
+        </span>
       </div>
 
       <div className="overflow-x-auto rounded-lg border border-slate-800">
-        <table className="w-full text-sm">
+        <table className="w-full border-collapse">
           <thead className="bg-slate-800/60">
             <tr>
-              <th className="th">Ship ID</th>
-              <th className="th">CB Before</th>
-              <th className="th">CB After</th>
-              <th className="th">Delta</th>
+              {['Ship', 'CB Before', 'CB After', 'Delta'].map((h) => (
+                <th key={h} className="th">{h}</th>
+              ))}
             </tr>
           </thead>
           <tbody className="divide-y divide-slate-800">
-            {members.map((m) => (
-              <tr key={m.shipId} className="hover:bg-slate-800/40">
-                <td className="td font-mono">{m.shipId}</td>
-                <td className="td">
-                  <span className={m.cbBefore > 0 ? 'text-emerald-400' : 'text-red-400'}>
-                    {m.cbBefore.toFixed(2)}
-                  </span>
-                </td>
-                <td className="td">
-                  <span className={m.cbAfter > 0 ? 'text-emerald-400' : 'text-red-400'}>
-                    {m.cbAfter.toFixed(2)}
-                  </span>
-                </td>
-                <td className="td">
-                  <Badge
-                    label={`${m.delta > 0 ? '+' : ''}${m.delta.toFixed(2)}`}
-                    variant={m.delta > 0 ? 'green' : m.delta < 0 ? 'red' : 'slate'}
-                  />
-                </td>
-              </tr>
-            ))}
+            {result.members.map((m) => {
+              const positive = m.delta >= 0;
+              return (
+                <tr key={m.shipId}
+                    className="hover:bg-slate-800/40 transition-colors">
+                  <td className="td font-mono font-semibold text-slate-100">
+                    {m.shipId}
+                  </td>
+                  <td className="td font-mono text-slate-400">
+                    {fmt(m.cbBefore)}
+                  </td>
+                  <td className={`td font-mono font-semibold ${
+                    m.cbAfter >= 0 ? 'text-emerald-400' : 'text-red-400'
+                  }`}>
+                    {fmt(m.cbAfter)}
+                  </td>
+                  <td className={`td font-mono font-semibold ${
+                    positive ? 'text-emerald-400' : 'text-amber-400'
+                  }`}>
+                    {positive ? '+' : ''}{fmt(m.delta)}
+                  </td>
+                </tr>
+              );
+            })}
           </tbody>
+          <tfoot className="bg-slate-800/40 border-t border-slate-700">
+            <tr>
+              <td className="th" colSpan={3}>Pool Sum</td>
+              <td className="td font-mono font-bold text-emerald-400">
+                {fmt(result.poolSum)} gCO₂e
+              </td>
+            </tr>
+          </tfoot>
         </table>
       </div>
-
-      <p className="text-xs text-slate-500">
-        Created: {new Date(createdAt).toLocaleString()}
-      </p>
     </div>
   );
 }

@@ -1,35 +1,35 @@
-import { useState, useEffect, useCallback } from 'react';
-import { IComplianceService } from '../ports/IComplianceService';
-import { RouteComparison, ComplianceFilters } from '../domain/compliance';
+import { useState, useEffect } from 'react';
+import { IRouteService }   from '../ports/IRouteService';
+import { RouteComparison } from '../domain/route';
 
-interface UseComparisonState {
-  comparisons:  RouteComparison[];
-  loading:      boolean;
-  error:        string | null;
+interface State {
+  comparisons: RouteComparison[];
+  loading:     boolean;
+  error:       string | null;
 }
 
-export function useComparison(service: IComplianceService, filters?: ComplianceFilters) {
-  const [state, setState] = useState<UseComparisonState>({
+export function useComparison(service: IRouteService) {
+  const [state, setState] = useState<State>({
     comparisons: [],
     loading:     true,
     error:       null,
   });
 
-  const fetchComparisons = useCallback(async () => {
+  useEffect(() => {
     setState((s) => ({ ...s, loading: true, error: null }));
-    try {
-      const data = await service.getComparisons(filters);
-      setState((s) => ({ ...s, comparisons: data, loading: false }));
-    } catch (err) {
-      setState((s) => ({
-        ...s,
-        loading: false,
-        error: err instanceof Error ? err.message : 'Failed to load comparisons',
-      }));
-    }
-  }, [service, filters]);
+    service
+      .getComparison()
+      .then((comparisons) =>
+        setState({ comparisons, loading: false, error: null })
+      )
+      .catch((err) =>
+        setState({
+          comparisons: [],
+          loading: false,
+          error: err instanceof Error ? err.message : 'Failed to load comparison',
+        })
+      );
+  }, [service]);
 
-  useEffect(() => { fetchComparisons(); }, [fetchComparisons]);
-
-  return { ...state, refetch: fetchComparisons };
+  return state;
 }

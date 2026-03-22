@@ -1,129 +1,153 @@
 import { useState } from 'react';
-import { BankingApiService } from '../../infrastructure/api/BankingApiService';
 import { ComplianceApiService } from '../../infrastructure/api/ComplianceApiService';
-import { useBanking } from '../../../core/application/useBanking';
-import { CBCard } from '../components/banking/CBCard.tsx';
-import { BankForm } from '../components/banking/BankForm';
-import { ApplyForm } from '../components/banking/ApplyForm';
-import { ErrorMessage } from '../components/shared/ErrorMessage';
-import { YEARS } from '../../../shared/constants';
+import { BankingApiService }    from '../../infrastructure/api/BankingApiService';
+import { useBanking }           from '../../../core/application/useBanking';
+import { CBCard }               from '../components/banking/CBCard';
+import { BankForm }             from '../components/banking/BankForm';
+import { ApplyForm }            from '../components/banking/ApplyForm';
+import { Spinner }              from '../components/shared/Spinner';
+import { ErrorMessage }         from '../components/shared/ErrorMessage';
+import { YEARS }                from '../../../shared/constants';
 
-const bankingService = new BankingApiService();
 const complianceService = new ComplianceApiService();
+const bankingService    = new BankingApiService();
+
+const SHIP_IDS = ['R001', 'R002', 'R003', 'R004', 'R005'];
 
 export function BankingPage() {
-  const [shipId, setShipId] = useState('VESSEL001');
-  const [year, setYear] = useState<number>(YEARS[0]);
-  const [balance, setBalance] = useState<any | null>(null);
+  const [shipId, setShipId] = useState('R002');
+  const [year,   setYear]   = useState(2024);
+  const [loaded, setLoaded] = useState(false);
 
   const {
-    summary,
-    loading: bankingLoading,
-    error: bankingError,
-    bankingBusy,
-    fetchSummary,
-    bankSurplus,
-    applyBanked,
-  } = useBanking(bankingService);
+    cb, summary, loading, error, success,
+    loadShip, bankSurplus, applyBanked,
+  } = useBanking(complianceService, bankingService);
 
-  const handleLoadSummary = async () => {
-    await fetchSummary(shipId, year);
+  const handleLoad = async () => {
+    await loadShip(shipId, year);
+    setLoaded(true);
   };
 
   return (
     <div className="space-y-6">
-      {/* ── Input controls ────────────────────────────────── */}
-      <div className="card space-y-4">
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+
+      {/* ── Ship selector ─────────────────────────────── */}
+      <div className="card">
+        <h2 className="mb-4 text-sm font-semibold text-slate-400
+                       uppercase tracking-wide">
+          Select Ship & Year
+        </h2>
+        <div className="flex flex-wrap gap-3 items-end">
           <div>
-            <label className="block text-xs font-medium text-slate-400 mb-2">Ship ID</label>
-            <input
-              type="text"
+            <label className="block text-xs text-slate-400 mb-1.5">
+              Ship ID
+            </label>
+            <select
               value={shipId}
-              onChange={(e) => setShipId(e.target.value)}
-              className="input-field w-full"
-            />
+              onChange={(e) => { setShipId(e.target.value); setLoaded(false); }}
+              className="input-field"
+            >
+              {SHIP_IDS.map((id) => (
+                <option key={id} value={id}>{id}</option>
+              ))}
+            </select>
           </div>
           <div>
-            <label className="block text-xs font-medium text-slate-400 mb-2">Year</label>
+            <label className="block text-xs text-slate-400 mb-1.5">Year</label>
             <select
               value={year}
-              onChange={(e) => setYear(Number(e.target.value))}
-              className="input-field w-full"
+              onChange={(e) => { setYear(Number(e.target.value)); setLoaded(false); }}
+              className="input-field"
             >
               {YEARS.map((y) => (
                 <option key={y} value={y}>{y}</option>
               ))}
             </select>
           </div>
-          <div className="flex items-end">
-            <button
-              onClick={handleLoadSummary}
-              className="btn-primary w-full justify-center"
-            >
-              Load Summary
-            </button>
-          </div>
+          <button
+            onClick={handleLoad}
+            disabled={loading}
+            className="btn-primary px-4 py-2 text-sm"
+          >
+            {loading ? <><Spinner size="sm" /> Loading…</> : 'Load Ship'}
+          </button>
         </div>
       </div>
 
-      {/* ── Errors ────────────────────────────────────────── */}
-      {bankingError && <ErrorMessage message={bankingError} />}
-
-      {/* ── CB Card ───────────────────────────────────────── */}
-      {summary && (
-        <CBCard balance={null} loading={bankingLoading} />
+      {/* ── Feedback ──────────────────────────────────── */}
+      {error   && <ErrorMessage message={error} />}
+      {success && (
+        <div className="rounded-lg border border-emerald-500/30
+                        bg-emerald-500/10 px-4 py-3 text-sm text-emerald-400">
+          ✓ {success}
+        </div>
       )}
 
-      {/* ── Forms ────────────────────────────────────────── */}
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-        {summary && (
-          <>
+      {/* ── Data panels ───────────────────────────────── */}
+      {loaded && cb && summary && (
+        <>
+          <CBCard cb={cb} />
+          <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
             <BankForm
-              onSubmit={(input) => bankSurplus(input)}
-              loading={bankingBusy}
-              shipId={shipId}
-              year={year}
-              maxAmount={Math.max(0, summary.totalBanked)}
+              cb={cb}
+              summary={summary}
+              loading={loading}
+              onBank={(amount) => bankSurplus(shipId, year, amount)}
             />
             <ApplyForm
-              onSubmit={(input) => applyBanked(input)}
-              loading={bankingBusy}
-              shipId={shipId}
-              year={year}
-              available={summary.totalRemaining}
+              summary={summary}
+              loading={loading}
+              onApply={(amount) => applyBanked(shipId, year, amount)}
             />
-          </>
-        )}
-      </div>
+          </div>
 
-      {/* ── Summary table ─────────────────────────────────── */}
-      {summary && summary.entries.length > 0 && (
-        <div className="card p-0 overflow-hidden">
-          <div className="px-6 py-4 border-b border-slate-800">
-            <h3 className="text-sm font-semibold text-slate-300">Banking History</h3>
-          </div>
-          <div className="overflow-x-auto">
-            <table className="w-full">
-              <thead className="bg-slate-800/60">
-                <tr>
-                  {['ID', 'Amount', 'Remaining', 'Created'].map((h) => (
-                    <th key={h} className="th">{h}</th>
-                  ))}
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-slate-800">
-                {summary.entries.map((entry) => (
-                  <tr key={entry.id} className="hover:bg-slate-800/40">
-                    <td className="td font-mono">{entry.id}</td>
-                    <td className="td">{entry.amountGco2eq.toFixed(4)}</td>
-                    <td className="td">{entry.remaining.toFixed(4)}</td>
-                    <td className="td text-xs">{new Date(entry.createdAt).toLocaleDateString()}</td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
+          {/* Bank entry history */}
+          {summary.entries.length > 0 && (
+            <div className="card p-0 overflow-hidden">
+              <div className="px-6 py-4 border-b border-slate-800">
+                <h3 className="text-sm font-semibold text-slate-300">
+                  Bank Entry History
+                </h3>
+              </div>
+              <div className="overflow-x-auto">
+                <table className="w-full border-collapse">
+                  <thead className="bg-slate-800/60">
+                    <tr>
+                      {['ID', 'Original Amount', 'Remaining', 'Created'].map(
+                        (h) => <th key={h} className="th">{h}</th>
+                      )}
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-slate-800">
+                    {summary.entries.map((e) => (
+                      <tr key={e.id}
+                          className="hover:bg-slate-800/40 transition-colors">
+                        <td className="td font-mono text-slate-400">
+                          #{e.id}
+                        </td>
+                        <td className="td font-mono">
+                          {e.amountGco2eq.toLocaleString()}
+                        </td>
+                        <td className="td font-mono text-emerald-400">
+                          {e.remaining.toLocaleString()}
+                        </td>
+                        <td className="td text-slate-400">
+                          {new Date(e.createdAt).toLocaleDateString()}
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          )}
+        </>
+      )}
+
+      {!loaded && !loading && (
+        <div className="card text-center py-16 text-slate-500">
+          Select a ship and year above, then click Load Ship.
         </div>
       )}
     </div>

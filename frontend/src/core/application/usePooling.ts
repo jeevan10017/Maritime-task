@@ -1,72 +1,76 @@
 import { useState, useCallback } from 'react';
+import { IBankingService } from '../ports/IBankingService';
+import { IComplianceService } from '../ports/IComplianceService';
+import { AdjustedCB } from '../domain/compliance';
+import { PoolResult } from '../domain/banking';
 
-export interface PoolMember {
-  shipId: string;
-  cbBefore: number;
+interface PoolingState {
+  adjustedCBs: Record<string, AdjustedCB>;
+  result:      PoolResult | null;
+  loading:     boolean;
+  error:       string | null;
+  success:     string | null;
 }
 
-interface UsePoolingState {
-  members:   PoolMember[];
-  loading:   boolean;
-  error:     string | null;
-  poolBusy:  boolean;
-  result:    any | null;
-}
-
-export function usePooling() {
-  const [state, setState] = useState<UsePoolingState>({
-    members:   [],
-    loading:   false,
-    error:     null,
-    poolBusy:  false,
-    result:    null,
+export function usePooling(
+  complianceService: IComplianceService,
+  bankingService:    IBankingService
+) {
+  const [state, setState] = useState<PoolingState>({
+    adjustedCBs: {},
+    result:      null,
+    loading:     false,
+    error:       null,
+    success:     null,
   });
 
-  const addMember = useCallback((shipId: string, cbBefore: number) => {
-    setState((s) => ({
-      ...s,
-      members: [...s.members, { shipId, cbBefore }],
-    }));
-  }, []);
+  const clearMessages = () =>
+    setState((s) => ({ ...s, error: null, success: null }));
 
-  const removeMember = useCallback((shipId: string) => {
-    setState((s) => ({
-      ...s,
-      members: s.members.filter((m) => m.shipId !== shipId),
-    }));
-  }, []);
-
-  const createPool = useCallback(async (year: number) => {
-    setState((s) => ({ ...s, poolBusy: true, error: null }));
-    try {
-      const response = await fetch('/api/v1/pools', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ year, members: state.members }),
-      });
-
-      if (!response.ok) {
-        const err = await response.json();
-        throw new Error(err.message || 'Failed to create pool');
+  // Fetch adjusted CB for a single ship
+  const fetchAdjustedCB = useCallback(
+    async (shipId: string, year: number) => {
+      try {
+        const cb = await complianceService.getAdjustedCB(shipId, year);
+        setState((s) => ({
+          ...s,
+          adjustedCBs: { ...s.adjustedCBs, [shipId]: cb },
+        }));
+      } catch (err) {
+        setState((s) => ({
+          ...s,
+          error: err instanceof Error
+            ? err.message
+            : `Failed to load CB for ${shipId}`,
+        }));
       }
+    },
+    [complianceService]
+  );
 
-      const data = await response.json();
-      setState((s) => ({
-        ...s,
-        poolBusy: false,
-        result: data.data,
-        members: [],
-      }));
-      return data.data;
-    } catch (err) {
-      setState((s) => ({
-        ...s,
-        poolBusy: false,
-        error: err instanceof Error ? err.message : 'Failed to create pool',
-      }));
-      throw err;
-    }
-  }, [state.members]);
+  // Create pool
+  const createPool = useCallback(
+    async (year: number, shipIds: string[]) => {
+      clearMessages();
+      setState((s) => ({ ...s, loading: true, result: null }));
+      try {
+        const result = await bankingService.createPool(year, shipIds);
+        setState((s) => ({
+          ...s,
+          result,
+          loading: false,
+          success: `Pool #${result.poolId} created successfully`,
+        }));
+      } catch (err) {
+        setState((s) => ({
+          ...s,
+          loading: false,
+          error: err instanceof Error ? err.message : 'Pool creation failed',
+        }));
+      }
+    },
+    [bankingService]
+  );
 
-  return { ...state, addMember, removeMember, createPool };
+  return { ...state, fetchAdjustedCB, createPool };
 }

@@ -2,62 +2,45 @@ import { ComplianceBalance } from '../../../../core/domain/compliance';
 import { Badge } from '../shared/Badge';
 
 interface CBCardProps {
-  balance: ComplianceBalance | null;
-  loading: boolean;
+  cb: ComplianceBalance;
 }
 
-export function CBCard({ balance, loading }: CBCardProps) {
-  if (loading) {
-    return <div className="card text-center py-8 text-slate-500">Loading...</div>;
-  }
+const fmt = (n: number) =>
+  n.toLocaleString('en-US', { maximumFractionDigits: 0 });
 
-  if (!balance) {
-    return <div className="card text-center py-8 text-slate-500">No data available</div>;
-  }
-
-  const isPositive = balance.cbGco2eq > 0;
+export function CBCard({ cb }: CBCardProps) {
+  const surplus = cb.cbStatus === 'surplus';
 
   return (
-    <div className="card">
-      <div className="flex items-start justify-between mb-4">
-        <div>
-          <p className="text-xs text-slate-500 uppercase tracking-wide">Carbon Credit Balance</p>
-          <p className="text-3xl font-bold mt-2">
-            <span className={isPositive ? 'text-emerald-400' : 'text-red-400'}>
-              {isPositive ? '+' : ''}{balance.cbGco2eq.toFixed(2)}
-            </span>
-            <span className="text-sm text-slate-500 ml-2">gCO₂e</span>
-          </p>
-        </div>
+    <div className="card space-y-4">
+      <div className="flex items-center justify-between">
+        <h3 className="text-sm font-semibold text-slate-400 uppercase tracking-wide">
+          Compliance Balance — {cb.shipId} ({cb.year})
+        </h3>
         <Badge
-          label={balance.status.charAt(0).toUpperCase() + balance.status.slice(1)}
-          variant={
-            balance.status === 'surplus' ? 'green'
-            : balance.status === 'deficit' ? 'red'
-            : 'slate'
-          }
+          label={cb.cbStatus.toUpperCase()}
+          variant={surplus ? 'green' : 'red'}
         />
       </div>
-
-      <div className="grid grid-cols-3 gap-4 pt-4 border-t border-slate-800">
-        <div>
-          <p className="text-xs text-slate-500">Target Intensity</p>
-          <p className="text-lg font-semibold text-slate-100 mt-1">
-            {balance.targetIntensity.toFixed(2)}
-          </p>
-        </div>
-        <div>
-          <p className="text-xs text-slate-500">Actual Intensity</p>
-          <p className="text-lg font-semibold text-slate-100 mt-1">
-            {balance.actualIntensity.toFixed(2)}
-          </p>
-        </div>
-        <div>
-          <p className="text-xs text-slate-500">Year</p>
-          <p className="text-lg font-semibold text-slate-100 mt-1">
-            {balance.year}
-          </p>
-        </div>
+      <div className="grid grid-cols-2 gap-4 sm:grid-cols-4">
+        {[
+          { label: 'Target Intensity',  value: `${cb.targetIntensity} gCO₂e/MJ` },
+          { label: 'Actual Intensity',  value: `${cb.actualIntensity} gCO₂e/MJ` },
+          { label: 'Energy in Scope',   value: `${fmt(cb.energyInScope)} MJ`     },
+          { label: 'CB (gCO₂e)',
+            value: `${fmt(cb.cbGco2eq)}`,
+            highlight: surplus ? 'text-emerald-400' : 'text-red-400',
+          },
+        ].map(({ label, value, highlight }) => (
+          <div key={label} className="bg-slate-800/50 rounded-lg p-3">
+            <p className="text-xs text-slate-500 mb-1">{label}</p>
+            <p className={`text-sm font-semibold font-mono ${
+              highlight ?? 'text-slate-100'
+            }`}>
+              {value}
+            </p>
+          </div>
+        ))}
       </div>
     </div>
   );
