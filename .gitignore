@@ -1,0 +1,164 @@
+# ======================================
+# SENSITIVE & ENVIRONMENT VARIABLES
+# ======================================
+.env
+.env.local
+.env.*.local
+.env.production.local
+.env.test.local
+.env.development.local
+*.pem
+*.key
+*.pfx
+*.p12
+*.crt
+.secrets/
+secrets/
+
+# ======================================
+# DEPENDENCIES
+# ======================================
+node_modules/
+package-lock.json
+yarn.lock
+pnpm-lock.yaml
+.pnp
+.pnp.js
+dist/
+build/
+
+# ======================================
+# IDE & EDITOR
+# ======================================
+.vscode/
+.idea/
+.DS_Store
+*.swp
+*.swo
+*~
+.sublime-project
+.sublime-workspace
+*.iml
+.vs/
+.vscode-test/
+*.code-workspace
+
+# ======================================
+# LOGS & DEBUG
+# ======================================
+logs/
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+lerna-debug.log*
+.pnpm-debug.log*
+debug.log
+
+# ======================================
+# OS FILES
+# ======================================
+.DS_Store
+Thumbs.db
+.localized
+.AppleDouble
+.LSOverride
+.DS_Store/
+
+# ======================================
+# TESTING & COVERAGE
+# ======================================
+coverage/
+.nyc_output/
+*.lcov
+jest.json
+
+# ======================================
+# BUILD & DIST
+# ======================================
+dist/
+build/
+out/
+*.tsbuildinfo
+
+# ======================================
+# TEMPORARY FILES
+# ======================================
+tmp/
+temp/
+*.tmp
+.cache/
+*.cache
+
+# ======================================
+# DATABASE
+# ======================================
+*.db
+*.sqlite
+*.sqlite3
+*.db-journal
+
+# ======================================
+# BACKEND SPECIFIC
+# ======================================
+backend/dist/
+backend/.env
+backend/.env.local
+backend/npm-debug.log*
+
+# ======================================
+# FRONTEND SPECIFIC
+# ======================================
+frontend/dist/
+frontend/build/
+frontend/.env
+frontend/.env.local
+frontend/npm-debug.log*
+.next/
+out/
+
+# ======================================
+# PACKAGE MANAGER LOCKS (Choose one)
+# ======================================
+# Uncomment one based on your package manager:
+# package-lock.json      # npm
+# yarn.lock              # yarn
+# pnpm-lock.yaml         # pnpm
+# Pipfile.lock           # Python
+
+# ======================================
+# IDE SPECIFIC
+# ======================================
+.vscode/*
+!.vscode/settings.json
+!.vscode/tasks.json
+!.vscode/launch.json
+!.vscode/extensions.json
+.idea/*
+!.idea/runConfigurations
+
+# ======================================
+# CI/CD
+# ======================================
+.github/workflows/*.log
+.gitlab-ci.log
+.circleci/logs/
+
+# ======================================
+# MISC
+# ======================================
+.turbo/
+.next/
+.nuxt/
+dist/
+.cache/
+.output/
+.vuepress/dist/
+.serverless/
+.fusebox/
+.dynamodb/
+.tern-port
+.venv
+env/
+venv/
+ENV/
